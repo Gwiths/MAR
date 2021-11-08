@@ -72,9 +72,9 @@ class ReidTrainer(Trainer):
             self.logger.print_log('loaded pre-trained model from {}'.format(args.pretrain_path))
         else:
             self.logger.print_log('{} is not a file. train from scratch.'.format(args.pretrain_path))
-        self.net = nn.DataParallel(self.net).cuda()
+        self.net = nn.DataParallel(self.net).cuda()                                                          ## nn.DataParallel(self.net)
 
-        bn_params, other_params = partition_params(self.net, 'bn')
+        bn_params, other_params = partition_params(self.net, 'bn')                             
         self.optimizer = torch.optim.SGD([{'params': bn_params, 'weight_decay': 0},
                                           {'params': other_params}], lr=args.lr, momentum=0.9, weight_decay=args.wd)
         self.lr_scheduler = MultiStepLR(self.optimizer, milestones=[int(args.epochs/8*5), int(args.epochs/8*7)])
@@ -93,7 +93,7 @@ class ReidTrainer(Trainer):
         self.lr_scheduler.step()
         if not self.cml_loss.initialized or not self.mdl_loss.initialized:
             self.init_losses(target_loader)
-        batch_time_meter = AverageMeter()
+        batch_time_meter = AverageMeter()                                                ## AverageMeter()
         stats = ('loss_source', 'loss_st', 'loss_ml', 'loss_target', 'loss_total')
         meters_trn = {stat: AverageMeter() for stat in stats}
         self.train()
