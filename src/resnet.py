@@ -18,12 +18,12 @@ class Bottleneck(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, is_last=False):
         super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)    ## There is nothing change but channels.
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,    ## H,W wont change with kernel_size=3 && padding = 1
                                padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
+        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)   ## output channel is planes * 4
         self.bn3 = nn.BatchNorm2d(planes * 4)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -44,7 +44,7 @@ class Bottleneck(nn.Module):
         out = self.conv3(out)
         out = self.bn3(out)
 
-        if self.downsample is not None:
+        if self.downsample is not None:               ## if inplanes != plane * expansion, then residual need to be downsampled. 否则残差channel或者H,W和output不对应，不能相加 
             residual = self.downsample(x)
 
         out += residual
@@ -64,11 +64,11 @@ class ResNet(nn.Module):
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer1 = self._make_layer(block, 64, layers[0])                     ## inplanes = 64, outplanes = 64 * 4
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)          
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_last=True)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_last=True)   ## outplanes = 512*4
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))    ## 池化后 (512*4, 1 ,1)
         self.fc = nn.Linear(2048, num_classes, bias=False)
 
         for m in self.modules():
@@ -81,7 +81,7 @@ class ResNet(nn.Module):
 
     def _make_layer(self, block, planes, blocks, stride=1, is_last=False):
         downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
+        if stride != 1 or self.inplanes != planes * block.expansion:    ## downsample条件
             downsample = nn.Sequential(
                 nn.Conv2d(self.inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
@@ -108,12 +108,12 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         feature_maps = self.layer4(x)
 
-        x = self.avgpool(feature_maps)
-        x = x.view(x.size(0), -1)
+        x = self.avgpool(feature_maps)                 ## (512*4, 1, 1) or (1, 1, 512*4)
+        x = x.view(x.size(0), -1)                      ## (512*4, 1)  or (1, 512*4)
         feature = x.renorm(2, 0, 1e-5).mul(1e5)
-        w = self.fc.weight
+        w = self.fc.weight                            ## 4101 * 2048
         ww = w.renorm(2, 0, 1e-5).mul(1e5)
-        sim = feature.mm(ww.t())
+        sim = feature.mm(ww.t())                      ## ww.t() 2048*4101       sim = 1*4101
 
         return feature, sim, feature_maps
 
