@@ -114,14 +114,14 @@ class ReidTrainer(Trainer):
             views_target = target_tuple[2].cuda()
             idx_target = target_tuple[3]
 
-            features, similarity, _ = self.net(imgs)
-            features_target, similarity_target, _ = self.net(imgs_target)
+            features, similarity, _ = self.net(imgs)                  ## one batch = 368 // 2 
+            features_target, similarity_target, _ = self.net(imgs_target)  
             scores = similarity * self.args.scala_ce
-            loss_source = self.al_loss(scores, labels)
-            agents = self.net.module.fc.weight.renorm(2, 0, 1e-5).mul(1e5)
+            loss_source = self.al_loss(scores, labels)             
+            agents = self.net.module.fc.weight.renorm(2, 0, 1e-5).mul(1e5)      ## fc.weight.data:shape=(nums_class, 2048)，也即agents
             loss_st = self.rj_loss(features, agents.detach(), labels, similarity.detach(), features_target, similarity_target.detach())
-            multilabels = F.softmax(features_target.mm(agents.detach().t_()*self.args.scala_ce), dim=1)
-            loss_ml = self.cml_loss(torch.log(multilabels), views_target)
+            multilabels = F.softmax(features_target.mm(agents.detach().t_()*self.args.scala_ce), dim=1)  ## 生成multilabels
+            loss_ml = self.cml_loss(torch.log(multilabels), views_target)    ## 跨views分布loss
             if epoch < 1:
                 loss_target = torch.Tensor([0]).cuda()
             else:
@@ -133,7 +133,7 @@ class ReidTrainer(Trainer):
                 self.initialized[uninitialized_idx] = 1
                 self.multilabel_memory[initialized_idx] = 0.9 * self.multilabel_memory[initialized_idx] \
                                                           + 0.1 * multilabels_cpu[is_init_batch]
-                loss_target = self.mdl_loss(features_target, self.multilabel_memory[idx_target], labels_target)
+                loss_target = self.mdl_loss(features_target, self.multilabel_memory[idx_target], labels_target)   ## Soft multilabel-guided hard negative mining
 
             self.optimizer.zero_grad()
             loss_total = loss_target + self.args.lamb_1 * loss_ml + self.args.lamb_2 * \
