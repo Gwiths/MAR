@@ -205,13 +205,15 @@ class JointLoss(torch.nn.Module):
         arange = torch.arange(len(agents)).cuda()
         zero = torch.Tensor([0]).cuda()
         for (f, l, s) in zip(features, labels, similarity):
-            loss_pos = (f - agents[l]).pow(2).sum()
+            loss_pos = (f - agents[l]).pow(2).sum()                ## 对应论文中的center-pulling term      
             loss_terms.append(loss_pos)
-            neg_idx = arange != l
-            hard_agent_idx = neg_idx & (s > self.sim_margin)
+            neg_idx = arange != l                                   ## neg_idx: list  可能是index从1开始，所以每次首个都是自己和自己的similarity。需要考证下similarity计算方式
+            hard_agent_idx = neg_idx & (s > self.sim_margin)        ## tensor的list才可以list和int比较
             if torch.any(hard_agent_idx):
-                hard_neg_sdist = (f - agents[hard_agent_idx]).pow(2).sum(dim=1)
-                loss_neg = torch.max(zero, self.margin - hard_neg_sdist).mean()
+                hard_neg_sdist = (f - agents[hard_agent_idx]).pow(2).sum(dim=1)     ## tensor的list才可以在list的index中套用list   
+                                                                                    ## 此时f是一个图像的行向量，agents[hard_agent_idx]是选中的相似度高的high_s个行向量
+                                                                                    ## 最终的hard_neg_sdist:shape=(high_s,1) 
+                loss_neg = torch.max(zero, self.margin - hard_neg_sdist).mean()     ## This's hinge function
                 loss_terms.append(loss_neg)
         for (f, s) in zip(features_target, similarity_target):
             hard_agent_idx = s > self.sim_margin
