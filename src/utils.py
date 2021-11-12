@@ -204,7 +204,7 @@ class JointLoss(torch.nn.Module):
         loss_terms = []
         arange = torch.arange(len(agents)).cuda()
         zero = torch.Tensor([0]).cuda()
-        for (f, l, s) in zip(features, labels, similarity):
+        for (f, l, s) in zip(features, labels, similarity):    ##这里的疑问主要在于为什么需要从features和agents之间寻找negative sample，也就是第一个for循环
             loss_pos = (f - agents[l]).pow(2).sum()                ## 对应论文中的center-pulling term      
             loss_terms.append(loss_pos)
             neg_idx = arange != l                                   ## neg_idx: list  可能是index从1开始，所以每次首个都是自己和自己的similarity。需要考证下similarity计算方式
