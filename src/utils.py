@@ -154,16 +154,16 @@ class DiscriminativeLoss(torch.nn.Module):
         """
         f_np = features.cpu().numpy()
         ml_np = multilabels.cpu().numpy()
-        p_dist = pdist(f_np)
+        p_dist = pdist(f_np)                                 ## f_np:shape=(BS,dim)    pdist()默认欧式距离，计算BS个f_np之间的距离
         p_agree = 1 - pdist(ml_np, 'minkowski', p=1) / 2
-        sorting_idx = np.argsort(p_dist)
-        n_similar = int(len(p_dist) * self.mining_ratio)
+        sorting_idx = np.argsort(p_dist)                     ## 排序后输出下标
+        n_similar = int(len(p_dist) * self.mining_ratio)     
         similar_idx = sorting_idx[:n_similar]
-        is_positive = p_agree[similar_idx] > self.threshold.item()
-        pos_idx = similar_idx[is_positive]
-        neg_idx = similar_idx[~is_positive]
-        P = dist_idx_to_pair_idx(len(f_np), pos_idx)
-        N = dist_idx_to_pair_idx(len(f_np), neg_idx)
+        is_positive = p_agree[similar_idx] > self.threshold.item()    ## similar_idx是fearuters相似度top k，其中若是similar大于阈值，则为positive
+        pos_idx = similar_idx[is_positive]                   ##!!!这里的idx其实是p_dist里边的idx，也就是根据式子 m * i + j - ((i + 2) * (i + 1)) // 2 算出来的
+        neg_idx = similar_idx[~is_positive]                  ## list=[True,False,True,..]  则~list = [False,True,False,..]
+        P = dist_idx_to_pair_idx(len(f_np), pos_idx)         ## 将p_dist里的idx转换为x, y
+        N = dist_idx_to_pair_idx(len(f_np), neg_idx)      
         self._update_threshold(p_agree)
         self._update_buffers(P, labels)
         return P, N
