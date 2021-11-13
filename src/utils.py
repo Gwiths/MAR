@@ -140,7 +140,7 @@ class DiscriminativeLoss(torch.nn.Module):
         loss = num + den
         return loss
 
-    def _partition_sets(self, features, multilabels, labels):
+    def _partition_sets(self, features, multilabels, labels):                  ## batch分成positive和negative
         """
         partition the batch into confident positive, hard negative and others
         :param features: shape=(BS, dim)
@@ -168,7 +168,7 @@ class DiscriminativeLoss(torch.nn.Module):
         self._update_buffers(P, labels)
         return P, N
 
-    def _update_threshold(self, pairwise_agreements):
+    def _update_threshold(self, pairwise_agreements):          ## 将top k大的值作为threshold
         pos = int(len(pairwise_agreements) * self.mining_ratio)
         sorted_agreements = np.sort(pairwise_agreements)
         t = torch.Tensor([sorted_agreements[-pos]]).cuda()
